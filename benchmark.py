@@ -11,6 +11,7 @@ import octree as octree
 import kdtree as kdtree
 from result_set import KNNResultSet, RadiusNNResultSet
 
+
 def read_velodyne_bin(path):
     '''
     :param path:
@@ -24,6 +25,7 @@ def read_velodyne_bin(path):
             pc_list.append([point[0], point[1], point[2]])
     return np.asarray(pc_list, dtype=np.float32).T
 
+
 def main():
     # configuration
     leaf_size = 32
@@ -31,7 +33,7 @@ def main():
     k = 8
     radius = 1
 
-    root_dir = '/Users/renqian/cloud_lesson/kitti' # 数据集路径
+    root_dir = '/Users/renqian/cloud_lesson/kitti'  # 数据集路径
     cat = os.listdir(root_dir)
     iteration_num = len(cat)
 
@@ -48,7 +50,7 @@ def main():
         root = octree.octree_construction(db_np, leaf_size, min_extent)
         construction_time_sum += time.time() - begin_t
 
-        query = db_np[0,:]
+        query = db_np[0, :]
 
         begin_t = time.time()
         result_set = KNNResultSet(capacity=k)
@@ -65,10 +67,10 @@ def main():
         nn_idx = np.argsort(diff)
         nn_dist = diff[nn_idx]
         brute_time_sum += time.time() - begin_t
-    print("Octree: build %.3f, knn %.3f, radius %.3f, brute %.3f" % (construction_time_sum*1000/iteration_num,
-                                                                     knn_time_sum*1000/iteration_num,
-                                                                     radius_time_sum*1000/iteration_num,
-                                                                     brute_time_sum*1000/iteration_num))
+    print("Octree: build %.3f, knn %.3f, radius %.3f, brute %.3f" % (construction_time_sum * 1000 / iteration_num,
+                                                                     knn_time_sum * 1000 / iteration_num,
+                                                                     radius_time_sum * 1000 / iteration_num,
+                                                                     brute_time_sum * 1000 / iteration_num))
 
     print("kdtree --------------")
     construction_time_sum = 0
@@ -83,7 +85,7 @@ def main():
         root = kdtree.kdtree_construction(db_np, leaf_size)
         construction_time_sum += time.time() - begin_t
 
-        query = db_np[0,:]
+        query = db_np[0, :]
 
         begin_t = time.time()
         result_set = KNNResultSet(capacity=k)
@@ -104,7 +106,6 @@ def main():
                                                                      knn_time_sum * 1000 / iteration_num,
                                                                      radius_time_sum * 1000 / iteration_num,
                                                                      brute_time_sum * 1000 / iteration_num))
-
 
 
 if __name__ == '__main__':
