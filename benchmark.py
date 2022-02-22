@@ -28,12 +28,15 @@ def read_velodyne_bin(path):
 
 def main():
     # configuration
+
+    iteration_num = 1
+
     leaf_size = 32
     min_extent = 0.0001
     k = 8
     radius = 1
 
-    root_dir = './000000.bin'  # 数据集路径
+    root_dir = '/Users/wangyu/Desktop/点云算法/第二章/lesson2code/cloud_point_lecture2/000000.bin'  # 数据集路径
     print("octree --------------")
     construction_time_sum = 0
     knn_time_sum = 0
