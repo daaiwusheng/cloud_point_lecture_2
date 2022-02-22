@@ -195,6 +195,34 @@ def octree_radius_search_fast(root: Octant, db: np.ndarray, result_set: RadiusNN
     # 提示：尽量利用上面的inside、overlaps、contains等函数
     # 屏蔽开始
 
+    # 先判断如果当前 查询球 包含了 当前节点,那么就不需要在查询当前节点的子节点了
+    # 直接比较当前节点包含的所有 points
+
+    if contains(query, result_set.worstDist(), root):
+        all_points_in = db[root.point_indices]
+        diff = np.linalg.norm(np.expand_dims(query, 0) - all_points_in, axis=1)
+        for i in range(diff.shape[0]):
+            result_set.add_point(diff[i], root.point_indices[i])
+        return False  # 包含当前节点,并不意味着不包含其他节点,所以返回 False
+
+    # 如果是叶子节点,那么 直接比较内部所有points
+
+    if root.is_leaf and len(root.point_indices) > 0:
+        leaf_points = db[root.point_indices, :]
+        diff = np.linalg.norm(np.expand_dims(query, 0) - leaf_points, axis=1)
+        for i in range(diff.shape[0]):
+            result_set.add_point(diff[i], root.point_indices[i])
+        return inside(query, result_set.worstDist(), root)
+
+    # 当前root 不是叶子, 也没有被 查询球包含,那么就需要查询其每个子节点
+    for i, current_octant in enumerate(root.children):
+        if current_octant is None:
+            continue
+        # 如果当前子节点与 查询球没有交集,那么就忽略这个子节点
+        if not overlaps(query, result_set.worst_dist(), current_octant):
+            continue
+        if octree_radius_search(current_octant, db, result_set, query):
+            return True
     # 屏蔽结束
 
     return inside(query, result_set.worstDist(), root)
@@ -221,7 +249,34 @@ def octree_radius_search(root: Octant, db: np.ndarray, result_set: RadiusNNResul
 
     # 作业6
     # 屏蔽开始
+    # 半径固定的情况下查询最近邻点, 和 knn是一样的策略, 只是此时这个最坏距离是固定的
+    # 既然不是叶子节点,那么我们就应该进入下一级子节点,
+    # 方法是判断当前查询点,属于哪个子节点, 肯定是查询当前查询点所在的子节点内的点 得到 最近邻点的概率大
+    # 所以先要判断当前查询点谓语哪个子节点呢
+    octant_index = 0
+    if query[0] > root.center[0]:
+        octant_index = octant_index | 1
+    if query[0] > root.center[1]:
+        octant_index = octant_index | 2
+    if query[0] > root.center[2]:
+        octant_index = octant_index | 4
 
+    if octree_radius_search(root.children[octant_index], db, result_set, query):
+        return True  # 如果条件为真,以为着搜索可以终止
+
+    # 如果当前查询点 和 最坏距离所构成的球体,不完全被某个子节点所包围,那么,就应该查看和当前子节点 平级的
+    # 其他子节点
+
+    for i, current_octant in enumerate(root.children):
+        # 我们需要的是当前 octant_index 平级的子节点
+        # 同时 子节点有肯能是根本没有被构建的,也就是none
+        if i == octant_index or current_octant is None:
+            continue
+        # 如果当前子节点与 查询球没有交集,那么就忽略这个子节点
+        if not overlaps(query, result_set.worst_dist(), current_octant):
+            continue
+        if octree_radius_search(current_octant, db, result_set, query):
+            return True
     # 屏蔽结束
 
     # final check of if we can stop search
